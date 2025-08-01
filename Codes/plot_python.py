@@ -1,24 +1,43 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# Plot the sine wave
-data = np.loadtxt("sine_wave.csv", delimiter=",")
-plt.figure(figsize=(10, 4))
-plt.plot(data[:, 0], data[:, 1])
-plt.title("Sine Wave (Time Domain)")
-plt.xlabel("Sample")
+# --- Load sine wave data ---
+sine_data = np.loadtxt("sine_wave.csv", delimiter=",")
+time = sine_data[:, 0]
+amplitude = sine_data[:, 1]
+
+plt.figure()
+plt.plot(time, amplitude, color='b')
+plt.title("Sine Wave")
+plt.xlabel("Time (s)")
 plt.ylabel("Amplitude")
 plt.grid(True)
 plt.tight_layout()
-plt.show()
 
-# Plot the DFT magnitude
-spectrum = np.loadtxt("dft_output.csv", delimiter=",")
-plt.figure(figsize=(10, 4))
-plt.plot(spectrum[:, 0], spectrum[:, 1])
-plt.title("DFT Magnitude Spectrum (Frequency Domain)")
+# --- Load DFT data with headers ---
+try:
+    dft_df = pd.read_csv("dft_output.csv")  # Assumes headers are present
+except Exception as e:
+    print("Error loading DFT data:", e)
+    exit()
+
+# Plot Magnitude Spectrum
+plt.figure()
+plt.plot(dft_df["Frequency(Hz)"], dft_df["Magnitude"], color='r')
+plt.title("DFT Magnitude Spectrum")
 plt.xlabel("Frequency (Hz)")
-plt.ylabel("Magnitude")
+plt.ylabel("Amplitude")
 plt.grid(True)
 plt.tight_layout()
+
+# Plot Phase Spectrum
+plt.figure()
+plt.plot(dft_df["Frequency(Hz)"], dft_df["Phase(rad)"], color='g')
+plt.title("DFT Phase Spectrum")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Phase (radians)")
+plt.grid(True)
+plt.tight_layout()
+
 plt.show()

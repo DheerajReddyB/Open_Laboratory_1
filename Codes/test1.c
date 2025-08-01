@@ -1,13 +1,15 @@
 #include <math.h>
 #include <stdio.h>
+
 #define PI 3.141592653589793f
-#define MAX_SAMPLES 1024  // Adjust this based on your DSP memory
+#define MAX_SAMPLES 1024  // Limit for DSP memory
 
 // Static global buffers
-float x[MAX_SAMPLES];     // Input signal
-float Re[MAX_SAMPLES];    // DFT real part
-float Im[MAX_SAMPLES];    // DFT imaginary part
-float Mag[MAX_SAMPLES];   // Magnitude spectrum
+float x[MAX_SAMPLES];       // Input signal
+float Re[MAX_SAMPLES];      // DFT real part
+float Im[MAX_SAMPLES];      // DFT imaginary part
+float Mag[MAX_SAMPLES];     // Magnitude spectrum (actual amplitude)
+float Phase[MAX_SAMPLES];   // Phase spectrum (radians)
 
 // Function: Generate a sine wave
 void generate_sine_wave(float amplitude, float freq, float Fs, int N) {
@@ -26,42 +28,61 @@ void compute_dft(int N) {
             Re[k] += x[n] * cosf(angle);
             Im[k] -= x[n] * sinf(angle);
         }
-        Mag[k] = sqrtf(Re[k] * Re[k] + Im[k] * Im[k]);
+        // Scale to get actual amplitude (not raw FFT magnitude)
+        Mag[k] = (2.0f / N) * sqrtf(Re[k] * Re[k] + Im[k] * Im[k]);
+        Phase[k] = atan2f(Im[k], Re[k]);  // Phase in radians
     }
 }
 
-// Function: Optional display (for PC debug only)
-// Comment out this function when running on the DSP
+// Function: Optional debug output
 void print_dft_result(float Fs, int N, int max_bins) {
+    printf("Bin\tFreq(Hz)\tMag\t\tPhase(rad)\n");
     for (int k = 0; k < max_bins && k < N / 2; k++) {
         float freq_bin = k * Fs / N;
-        printf("Bin %d\tFreq: %.2f Hz\tMag: %.4f\n", k, freq_bin, Mag[k]);
+        printf("%d\t%.2f\t\t%.4f\t\t%.4f\n", k, freq_bin, Mag[k], Phase[k]);
     }
 }
 
-// Main function (DSP main loop entry point)
+// Main function
 int main(void) {
-    // ----- Tunable Parameters -----
-    float amplitude = 1.0f;     // Amplitude of sine wave
-    float freq = 100.0f;        // Frequency of sine wave (Hz)
+    // --- Tunable Parameters ---
+    float amplitude = 1.0f;     // Sine wave amplitude
+    float freq = 100.0f;        // Sine wave frequency (Hz)
     float Fs = 1000.0f;         // Sampling rate (Hz)
-    float duration = 1.0f;      // Duration (seconds)
-    int N = (int)(Fs * duration);  // Total number of samples
+    float duration = 1.0f;      // Signal duration (s)
 
-    // Limit to MAX_SAMPLES
-    if (N > MAX_SAMPLES) {
-        N = MAX_SAMPLES;
-    }
+    int N = (int)(Fs * duration); // Number of samples
+    if (N > MAX_SAMPLES) N = MAX_SAMPLES;
 
-    // ----- Processing -----
+    // --- Signal Generation & DFT ---
     generate_sine_wave(amplitude, freq, Fs, N);
     compute_dft(N);
 
-    // ----- Debug output (for PC only) -----
-    // You should comment/remove this block when running on DSP
+    // --- Debug: Print DFT bins ---
     print_dft_result(Fs, N, 200);
 
-    // ----- On DSP, you can send `Mag[]` via UART or store in shared memory -----
+    // --- Output: Save sine wave (Time vs Amplitude) ---
+    FILE *fp_signal = fopen("sine_wave.csv", "w");
+    if (fp_signal != NULL) {
+        for (int n = 0; n < N; n++) {
+            float time = n / Fs;
+            fprintf(fp_signal, "%.6f,%.4f\n", time, x[n]);
+        }
+        fclose(fp_signal);
+        printf("Saved sine_wave.csv (Time,Amplitude)\n");
+    }
+
+    // --- Output: Save DFT result (Frequency vs Magnitude and Phase) ---
+    FILE *fp_dft = fopen("dft_output.csv", "w");
+    if (fp_dft != NULL) {
+        fprintf(fp_dft, "Frequency(Hz),Magnitude,Phase(rad)\n");
+        for (int k = 0; k < N / 2; k++) {  // Only up to Nyquist
+            float freq_bin = k * Fs / N;
+            fprintf(fp_dft, "%.2f,%.4f,%.4f\n", freq_bin, Mag[k], Phase[k]);
+        }
+        fclose(fp_dft);
+        printf("Saved dft_output.csv (Frequency,Magnitude,Phase)\n");
+    }
 
     return 0;
 }
