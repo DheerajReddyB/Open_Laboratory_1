@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # --- Load sine wave data ---
-sine_data = np.loadtxt("sine_wave.csv", delimiter=",")
+sine_data = np.loadtxt("adc_read.csv", delimiter=",")
 time = sine_data[:, 0]
 amplitude = sine_data[:, 1]
 
@@ -17,7 +17,7 @@ plt.tight_layout()
 
 # --- Load DFT data with headers ---
 try:
-    dft_df = pd.read_csv("fft_output.csv")  # Assumes headers are present
+    dft_df = pd.read_csv("test3plot.csv")  # Assumes headers are present
 except Exception as e:
     print("Error loading FFT data:", e)
     exit()

@@ -1,0 +1,32 @@
+#include "device.h"
+#include "driverlib.h"
+
+void main(void)
+{
+    //
+    // Initialize device and GPIO
+    //
+    Device_init();
+    Device_initGPIO();
+
+    //
+    // Initialize interrupt module (even if not used, TI template requires it)
+    //
+    Interrupt_initModule();
+    Interrupt_initVectorTable();
+
+    EINT;   // Enable Global interrupt INTM
+    ERTM;   // Enable Global realtime interrupt DBGM
+
+    //
+    // Blink RED LED
+    //
+    for(;;)
+    {
+        GPIO_writePin(DEVICE_GPIO_PIN_LED1, 0);  // ON
+        DEVICE_DELAY_US(500000);                 // 500ms delay
+
+        GPIO_writePin(DEVICE_GPIO_PIN_LED1, 1);  // OFF
+        DEVICE_DELAY_US(500000);                 // 500ms delay
+    }
+}

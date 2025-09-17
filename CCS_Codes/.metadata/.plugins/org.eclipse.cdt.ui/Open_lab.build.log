@@ -1,0 +1,36 @@
+
+**** Build of configuration Debug for project Open_lab ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 16 all -O 
+ 
+Building file: "../device.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="D:/SEM-5/Open_Laboratory_1/CCS_Codes/Open_lab" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib/inc" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi --preproc_with_compile --preproc_dependency="device.d_raw"  "../device.c"
+Finished building: "../device.c"
+ 
+Building file: "../main.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="D:/SEM-5/Open_Laboratory_1/CCS_Codes/Open_lab" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib/inc" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi --preproc_with_compile --preproc_dependency="main.d_raw"  "../main.c"
+"../main.c", line 14: warning #225-D: function "DEVICE_DELAY_US" declared implicitly
+Finished building: "../main.c"
+ 
+Building target: "Open_lab.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --advice:performance=all --define=CPU1 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"Open_lab.map" --stack_size=0x200 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/cmd" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/cmd" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="Open_lab_linkInfo.xml" --rom_model -o "Open_lab.out" "./F2837xD_CodeStartBranch.obj" "./F2837xD_GlobalVariableDefs.obj" "./F2837xD_Gpio.obj" "./F2837xD_Ipc.obj" "./F2837xD_SysCtrl.obj" "./F2837xD_usDelay.obj" "./device.obj" "./main.obj" "../2837x_FLASH_lnk_cpu1.cmd"  -l"C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib/ccs/Debug/driverlib_coff.lib" -llibc.a -l"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/cmd/F2837xD_Headers_nonBIOS_cpu1.cmd" 
+<Linking>
+ 
+ undefined        first referenced
+  symbol              in file     
+ ---------        ----------------
+ _DEVICE_DELAY_US ./main.obj      
+ 
+error #10234-D: unresolved symbols remain
+error #10010: errors encountered during linking; "Open_lab.out" not built
+ 
+>> Compilation failure
+makefile:144: recipe for target 'Open_lab.out' failed
+gmake[1]: *** [Open_lab.out] Error 1
+makefile:140: recipe for target 'all' failed
+gmake: *** [all] Error 2
+
+**** Build Finished ****

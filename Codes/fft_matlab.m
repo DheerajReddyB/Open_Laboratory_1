@@ -1,6 +1,6 @@
 % Parameters
-Fs = 1024;          % Sampling frequency (Hz)
-f = 100;            % Sine wave frequency (Hz)
+Fs = 2048;          % Sampling frequency (Hz)
+f = 5000;            % Sine wave frequency (Hz)
 A = 1.0;            % Amplitude
 duration = 1.0;     % Duration in seconds
 N = Fs * duration;  % Total samples
