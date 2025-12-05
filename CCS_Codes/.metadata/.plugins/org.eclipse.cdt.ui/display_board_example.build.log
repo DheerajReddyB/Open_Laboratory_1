@@ -1,0 +1,41 @@
+
+**** Build of configuration Debug for project display_board_example ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 16 all -O 
+ 
+Building file: "../main.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="D:/SEM-5/Open_Laboratory_1/CCS_Codes/display_board_example" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --define=CPU1 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi --preproc_with_compile --preproc_dependency="main.d_raw"  "../main.c"
+ 
+>> Compilation failure
+subdir_rules.mk:9: recipe for target 'main.obj' failed
+"../main.c", line 35: error #20: identifier "uint8_t" is undefined
+"../main.c", line 35: error #20: identifier "uint8_t" is undefined
+"../main.c", line 35: error #20: identifier "uint8_t" is undefined
+"../main.c", line 35: error #20: identifier "uint8_t" is undefined
+"../main.c", line 39: error #20: identifier "uint8_t" is undefined
+"../main.c", line 40: error #20: identifier "uint8_t" is undefined
+"../main.c", line 41: error #20: identifier "uint8_t" is undefined
+"../main.c", line 45: error #20: identifier "uint8_t" is undefined
+"../main.c", line 56: error #20: identifier "uint8_t" is undefined
+"../main.c", line 64: error #20: identifier "uint8_t" is undefined
+"../main.c", line 108: error #20: identifier "uint8_t" is undefined
+"../main.c", line 108: error #20: identifier "uint8_t" is undefined
+"../main.c", line 108: error #20: identifier "uint8_t" is undefined
+"../main.c", line 108: error #20: identifier "uint8_t" is undefined
+"../main.c", line 142: error #20: identifier "uint8_t" is undefined
+"../main.c", line 142: error #20: identifier "uint8_t" is undefined
+"../main.c", line 143: error #66: expected a ";"
+"../main.c", line 148: error #20: identifier "lo" is undefined
+"../main.c", line 158: error #20: identifier "uint8_t" is undefined
+"../main.c", line 158: error #167: too few arguments in function call
+"../main.c", line 158: error #18: expected a ")"
+"../main.c", line 172: error #29: expected an expression
+"../main.c", line 172: error #20: identifier "xx" is undefined
+"../main.c", line 267: error #29: expected an expression
+"../main.c", line 267: error #20: identifier "i" is undefined
+25 errors detected in the compilation of "../main.c".
+gmake: *** [main.obj] Error 1
+gmake: Target 'all' not remade because of errors.
+
+**** Build Finished ****

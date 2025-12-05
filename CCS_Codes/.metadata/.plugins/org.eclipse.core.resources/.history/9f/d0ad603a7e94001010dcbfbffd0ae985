@@ -1,0 +1,52 @@
+#define Q12_SCALE 8
+extern int r4_fft(short, short*, short*);
+short x[32]={ 0, 0, // input samples
+ 4617/Q12_SCALE, 0, // Scale the data from Q15 to Q12
+ 9118/Q12_SCALE, 0,
+ 13389/Q12_SCALE, 0,
+ 17324/Q12_SCALE, 0,
+ 20825/Q12_SCALE, 0,
+ 23804/Q12_SCALE, 0,
+ 26187/Q12_SCALE, 0,
+ 27914/Q12_SCALE, 0,
+ 28941/Q12_SCALE, 0,
+ 29242/Q12_SCALE, 0,
+ 28811/Q12_SCALE, 0,
+ 27658/Q12_SCALE, 0,
+ 25811/Q12_SCALE, 0,
+ 23318/Q12_SCALE, 0,
+ 20241/Q12_SCALE, 0 };
+short w[32]={ 0, 32767, // Twiddle Factors
+ 12540, 30274, // 32768*sin(2PI*n/N), 32768*cos(2PI*n/N)
+ 23170, 23170,
+ 30274, 12540,
+ 32767, 0,
+ 30274, -12540,
+ 23170, -23170,
+ 12540, -30274,
+ 0, -32767,
+ -12540, -30274,
+ -23170, -23170,
+ -30274, -12540,
+ -32767, 0,
+ -30274, 12540,
+ -23170, 23170,
+ -12540, 30274 };
+short index[16]={ 0, 4, 8, 12, // index for 16-points digit reverse
+ 1, 5, 9, 13,
+ 2, 6, 10, 14,
+ 3, 7, 11, 15 };
+short y[32]; // outputs
+main()
+{
+
+    int n=16;
+    int i;
+    int scale;
+    scale = r4_fft(n,x,w);
+    for(i=0; i<n; i++) {
+    y[2*i] = x[index[i]*2];
+    y[2*i+1] = x[index[i]*2+1];
+    }
+}
+}

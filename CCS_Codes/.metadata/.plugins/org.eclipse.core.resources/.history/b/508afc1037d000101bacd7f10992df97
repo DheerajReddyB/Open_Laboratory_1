@@ -1,0 +1,143 @@
+// adc_sw_force_test.c
+// Minimal software-forced ADC test for F28379D
+// Forces ADCA SOC0 repeatedly and prints ADCARESULT0 over SCIA.
+// Use this to confirm ADCIN14 is being sampled and SCIA is working.
+//
+// Paste into your CCS project and build/flash. Open terminal 115200 8N1 and reset board.
+//
+// Author: ChatGPT (debug helper)
+
+#include <stdint.h>
+#include <string.h>
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+#define SAMPLE_DELAY_US   50000U   // 50 ms between forced samples (adjust small to test faster)
+#define DUMP_BAUDRATE     115200U
+#define ADC_CHANNEL       0x0EU    // ADCIN14 (keep same as your other code)
+#define ACQPS_VAL         25U      // acquisition window (ACQPS+1 cycles)
+#define ADC_PRESCALE_VAL  6U       // ADCCLK prescale
+
+/* helpers */
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007;  // 8-bit, 1 stop, no parity
+    SciaRegs.SCICTL1.all = 0x0003;
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+    EDIS;
+
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+    SciaRegs.SCICTL1.all = 0x0023;  // release from reset
+}
+
+void scia_send_str(const char *s)
+{
+    const char *p = s;
+    while (*p) {
+        SciaRegs.SCITXBUF.all = (unsigned char)(*p++);
+        DELAY_US(200);
+    }
+}
+
+void scia_send_uint16(uint16_t v)
+{
+    // send as ASCII decimal plus newline
+    char buf[32];
+    int n = sprintf(buf, "%u\n", (unsigned int)v);
+    for (int i = 0; i < n; ++i) {
+        SciaRegs.SCITXBUF.all = (unsigned char)buf[i];
+        DELAY_US(200);
+    }
+}
+
+/* Minimal ADC init for software force SOC0 */
+void initADC_swforce(void)
+{
+    EALLOW;
+    /* prescale */
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE_VAL;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE_VAL;
+
+    /* 12-bit single ended */
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    /* late sampling + power up */
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000);
+
+    /* SOC0 -> ADC_channel */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ACQPS_VAL;
+
+    /* TRIGSEL is not used when forcing SOC via ADCSOCFRC1, but safe to set */
+#ifdef ADCTRIG_SW_FORCE
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_SW_FORCE;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 0U;
+#endif
+
+    /* Clear ADCINT1 flag */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    EDIS;
+}
+
+int main(void)
+{
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    initSCIA_blocking(DUMP_BAUDRATE);
+    scia_send_str("HELLO\n");
+
+    initADC_swforce();
+
+    scia_send_str("SWFORCE_TEST_START\n");
+
+    /* Toggle LED pin to show activity (GPIO31 example) */
+    EALLOW; GpioCtrlRegs.GPAMUX1.bit.GPIO31 = 0; GpioCtrlRegs.GPADIR.bit.GPIO31 = 1; EDIS;
+
+    while (1) {
+        /* Force SOC0 */
+        AdcaRegs.ADCSOCFRC1.all = 0x1;
+
+        /* Wait for EOC0 by polling EOC bit (or poll ADCINT if you set INT1SEL) */
+        while (AdcaRegs.ADCINTFLG.bit.ADCINT1 == 0) {
+            /* busy wait */
+        }
+
+        /* Read result */
+        uint16_t val = (uint16_t)AdcaResultRegs.ADCRESULT0;
+
+        /* Clear ADCINT1 flag */
+        AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+        /* send ascii */
+        scia_send_str("SAMPLE: ");
+        scia_send_uint16(val);
+
+        /* toggle LED */
+        GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
+
+        /* short delay between forced samples */
+        DELAY_US(SAMPLE_DELAY_US);
+    }
+
+    return 0;
+}

@@ -1,0 +1,295 @@
+// epwm_adc_isr_capture.c
+// Simple ePWM -> ADCA -> ISR buffer copy (validation step).
+// Not for 1 MSPS (ISR cannot sustain 1MHz) — used to validate wiring & trigger pipeline.
+//
+// Usage:
+//  - Paste into your CCS project, build & flash.
+//  - Open terminal @115200. Reset board. You should see HELLO x3, CAPTURE_STARTED, CAPTURE_DONE, CAPTURE_BIN, binary bytes, CAPTURE_END.
+//  - Capture the binary bytes into a file (data.bin) and run your existing Python decode (mask12, VREF ~2.83).
+//
+// Author: ChatGPT (adapted for F28379D)
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+/* -------- CONFIGURATION -------- */
+#define CAPTURE_SAMPLES   (2048U)    // ISR test buffer size
+#define ADC_CHANNEL       0x0EU      // ADCIN14
+#define DUMP_BAUDRATE     115200U
+
+/* TEST RATE: Keep this low for ISR validation.
+   With SYSCLK=200MHz and TBCLK_DIV=4 => TBCLK=50MHz.
+   For 100kHz: TBPRD = 50e6/100e3 - 1 = 499 -> use 499
+*/
+#define TBCLK_DIV         4U
+#define TBPRD_TEST_100KHZ 499U
+
+/* Small acquisition window for speed; increase if driving from high-Z source */
+#define ADC_PRESCALE      6U
+#define ADC_ACQPS         20U
+
+/* ----------------- globals ----------------- */
+static volatile uint16_t adcBuffer[CAPTURE_SAMPLES];
+static volatile uint32_t sampleIndex = 0;
+static volatile bool captureDone = false;
+
+/* ---------- forward declaration of ISR ---------- */
+__interrupt void adca_isr(void);
+
+/* Forward prototypes */
+void initSCIA_blocking(uint32_t baud);
+void scia_send_byte_blocking(unsigned char b);
+void initSCIA_and_pins(uint32_t baud);
+
+void initEPWM_for_test(void);
+void initADC_for_epwm_trigger(void);
+
+void dump_buffer_over_uart_with_header(uint32_t n);
+
+/* ---------- SCIA helpers ---------- */
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007;  /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICTL1.all = 0x0003;
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+    EDIS;
+
+    /* Baud calculation for LSPCLK = 50 MHz (typical when SYSCLK=200MHz) */
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;   /* approximate for 115200 @50MHz */
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+
+    /* Release SCI from reset */
+    SciaRegs.SCICTL1.all = 0x0023;
+}
+
+/* Robust blocking send: write byte then small delay */
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    DELAY_US(200);
+}
+
+/* Configure SCIA TX/RX pinmux, optional LED, init SCIA, send triple HELLO as startup test */
+void initSCIA_and_pins(uint32_t baud)
+{
+    int rep;
+
+    EALLOW;
+    /* Route SCIA to GPIO42/43 (common on many F2837xD examples) */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+
+    /* Configure a visible LED pin as output (GPIO31 example) */
+    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;
+    GpioDataRegs.GPADAT.bit.GPIO31 = 1; /* LED off (board dependent) */
+    EDIS;
+
+    initSCIA_blocking(baud);
+
+    /* Triple HELLO for easy visual confirmation in terminal */
+    {
+        const char *hello = "HELLO\n";
+        const char *p;
+        for (rep = 0; rep < 3; ++rep) {
+            p = hello;
+            while (*p) {
+                scia_send_byte_blocking((unsigned char)*p++);
+            }
+            DELAY_US(20000); /* 20ms gap between HELLO lines */
+        }
+    }
+}
+
+/* ---------- ePWM test init (100 kHz default) ---------- */
+void initEPWM_for_test(void)
+{
+    EALLOW;
+    /* TBCLK prescalers: set to 1 */
+    EPwm1Regs.TBCTL.bit.CLKDIV = 0;      /* CLKDIV = /1 */
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = 0;   /* HSPCLKDIV = /1 */
+
+    /* Up-count mode, no phasing */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBPRD = TBPRD_TEST_100KHZ;
+
+    /* Enable SOCA on Zero */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+
+    EDIS;
+}
+
+/* ---------- ADC init for ePWM SOCA trigger ---------- */
+void initADC_for_epwm_trigger(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000);
+
+    /* SOC0 -> ADCIN14 */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ADC_ACQPS;
+
+    /* TRIGSEL: map ePWM1 SOCA to SOC0. Use common macros if available, fallback numeric value. */
+#ifdef ADCTRIG_EPWM1_SOCA
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+#elif defined(ADCTRIG1)
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG1;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 6U; /* common fallback - adjust if your headers define a different mapping */
+#endif
+
+    /* Map ADCINT1 to EOC0 so ISR runs after SOC0 completes */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0; /* EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;   /* enable */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1; /* clear any existing flag */
+    EDIS;
+}
+
+/* ---------- ADC ISR ---------- */
+__interrupt void adca_isr(void)
+{
+    uint16_t v = (uint16_t)AdcaResultRegs.ADCRESULT0;
+
+    if (sampleIndex < CAPTURE_SAMPLES) {
+        adcBuffer[sampleIndex] = v;
+        sampleIndex++;
+    }
+
+    if (sampleIndex >= CAPTURE_SAMPLES) {
+        captureDone = true;
+        /* disable further ADCINTs by clearing INT1E */
+        AdcaRegs.ADCINTSEL1N2.bit.INT1E = 0;
+    }
+
+    /* clear ADCINT1 flag and ack PIE */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+}
+
+/* ---------- Dump buffer over UART ---------- */
+void dump_buffer_over_uart_with_header(uint32_t n)
+{
+    uint32_t i;
+
+    const char *hdr = "CAPTURE_BIN\n";
+    const char *p = hdr;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+
+    /* Toggle LED briefly */
+    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
+    DELAY_US(500);
+    GpioDataRegs.GPASET.bit.GPIO31 = 1;
+
+    for (i = 0; i < n; ++i) {
+        uint16_t vv = adcBuffer[i];
+        scia_send_byte_blocking((unsigned char)(vv & 0xFF));
+        scia_send_byte_blocking((unsigned char)(vv >> 8));
+    }
+
+    const char *endm = "\nCAPTURE_END\n";
+    p = endm;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+}
+
+/* ---------- main ---------- */
+int main(void)
+{
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    int i, rep;
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    /* Initialize SCIA and pins */
+    initSCIA_and_pins(DUMP_BAUDRATE);
+
+    /* Initialize peripherals */
+    initEPWM_for_test();
+    initADC_for_epwm_trigger();
+
+    /* Register/attach ADC ISR in a portable way:
+       If driverlib 'Interrupt_register' is available, use it.
+       Otherwise fall back to assigning PieVectTable.ADCINT1 and enabling PIE/IER. */
+#ifdef Interrupt_register
+    /* Try driverlib-style registration (preferred when available) */
+    Interrupt_register(INT_ADCA1, &adca_isr);   /* register ISR for ADCA INT1 */
+    Interrupt_enable(INT_ADCA1);                /* enable CPU interrupt for ADCA1 */
+#else
+    /* Fallback to legacy PIE vector table assignment */
+    EALLOW;
+    PieVectTable.ADCINT1 = &adca_isr;   /* assign ISR in PIE table (may exist in many SDKs) */
+    EDIS;
+
+    /* Enable PIE group1 interrupt line 1 (ADCINT1) */
+    PieCtrlRegs.PIEIER1.bit.INTx1 = 1;
+    IER |= M_INT1;
+#endif
+
+    /* Announce start */
+    {
+        const char *msg = "CAPTURE_STARTED\n";
+        const char *q = msg;
+        for (rep = 0; rep < (int)strlen(q); ++rep) {
+            scia_send_byte_blocking((unsigned char)q[rep]);
+        }
+    }
+
+    /* Clear buffer/index then start ePWM counter */
+    for (i = 0; i < (int)CAPTURE_SAMPLES; ++i) adcBuffer[i] = 0;
+    sampleIndex = 0;
+    captureDone = false;
+
+    /* Start ePWM counter */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+
+    /* Wait until captureDone set by ISR (simple busy loop; you can add timeout) */
+    while (!captureDone) {
+        /* idle */
+    }
+
+    /* Announce and dump */
+    {
+        const char *msg = "CAPTURE_DONE\n";
+        const char *q = msg;
+        for (rep = 0; rep < (int)strlen(q); ++rep) {
+            scia_send_byte_blocking((unsigned char)q[rep]);
+        }
+    }
+
+    dump_buffer_over_uart_with_header(CAPTURE_SAMPLES);
+
+    /* Halt */
+    for (;;) { __asm(" NOP"); }
+
+    return 0;
+}

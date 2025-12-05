@@ -1,0 +1,35 @@
+/*---------------------------------------------------------------
+* F28379D Linker Command File for FFT Project
+* Places FFT input/output arrays in RAM sections
+*----------------------------------------------------------------*/
+
+/* Define memory sections */
+MEMORY
+{
+    /* Flash */
+    FLASH : origin = 0x000000, length = 0x200000  /* 2 MB Flash */
+    
+    /* RAM - main CPU RAM */
+    RAMGS0 : origin = 0x000200, length = 0x400    /* For FFT input array */
+    RAMGS1 : origin = 0x000600, length = 0x400    /* For FFT output array */
+    
+    /* Other RAM sections */
+    RAMLS0 : origin = 0x000A00, length = 0x16000  /* general-purpose RAM */
+}
+
+/* Default section placement */
+SECTIONS
+{
+    /* Place vectors and code in FLASH */
+    .text : > FLASH
+    .cinit : > FLASH
+    .pinit : > FLASH
+
+    /* Place initialized data in RAM sections */
+    input  : > RAMGS0
+    output : > RAMGS1
+
+    /* Place remaining data in general RAM */
+    .bss : > RAMLS0
+    .data : > RAMLS0
+}

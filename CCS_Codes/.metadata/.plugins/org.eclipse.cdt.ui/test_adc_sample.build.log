@@ -1,0 +1,329 @@
+
+**** Build of configuration CPU1_Flash for project test_adc_sample ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k all 
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/Example_F28379D_LaunchPadDemo.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="Example_F28379D_LaunchPadDemo.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/Example_F28379D_LaunchPadDemo.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/Example_F28379D_LaunchPadDemo.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_Adc.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_CodeStartBranch.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CpuTimers.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_CpuTimers.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CpuTimers.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CpuTimers.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_DefaultISR.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_GlobalVariableDefs.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_Gpio.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_PieCtrl.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_PieVect.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Sci.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_Sci.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Sci.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Sci.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_SysCtrl.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c", line 837 (col. 47): advice #2614-D: (Performance) Use --fp_mode=relaxed to enable TMU hardware support for FP division.
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="F2837xD_usDelay.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/sci_io.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number --preproc_with_compile --preproc_dependency="sci_io.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/sci_io.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/launchxl_f28379d/cpu01/sci_io.c"
+ 
+Building target: "test_adc_sample.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --advice:performance=all --define=CPU1 --define=_LAUNCHXL_F28379D --define=_FLASH -g --diag_suppress=1311 --diag_suppress=552 --diag_suppress=10063 --diag_warning=225 --display_error_number -z -m"test_adc_sample.map" --heap_size=0x400 --stack_size=0x100 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" -i"D:/common/cmd" -i"D:/headers/cmd" --reread_libs --display_error_number --xml_link_info="test_adc_sample_linkInfo.xml" --entry_point=code_start --rom_model -o "test_adc_sample.out" "./Example_F28379D_LaunchPadDemo.obj" "./F2837xD_Adc.obj" "./F2837xD_CodeStartBranch.obj" "./F2837xD_CpuTimers.obj" "./F2837xD_DefaultISR.obj" "./F2837xD_GlobalVariableDefs.obj" "./F2837xD_Gpio.obj" "./F2837xD_PieCtrl.obj" "./F2837xD_PieVect.obj" "./F2837xD_Sci.obj" "./F2837xD_SysCtrl.obj" "./F2837xD_usDelay.obj" "./sci_io.obj"  -lrts2800_fpu32.lib -l2837xD_FLASH_lnk_cpu1.cmd -lF2837xD_Headers_nonBIOS_cpu1.cmd -llibc.a 
+<Linking>
+error #10008-D: cannot find file "2837xD_FLASH_lnk_cpu1.cmd"
+error #10008-D: cannot find file "F2837xD_Headers_nonBIOS_cpu1.cmd"
+warning #10247-D: creating output section ".text" without a SECTIONS
+   specification
+warning #10247-D: creating output section ".cinit" without a SECTIONS
+   specification
+warning #10247-D: creating output section ".esysmem" without a SECTIONS
+   specification
+warning #10247-D: creating output section ".ebss" without a SECTIONS
+   specification
+warning #10247-D: creating output section ".econst" without a SECTIONS
+   specification
+warning #10247-D: creating output section "codestart" without a SECTIONS
+   specification
+warning #10247-D: creating output section "FlashPumpSemaphoreRegsFile" without
+   a SECTIONS specification
+warning #10247-D: creating output section "RomPrefetchRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "RomWaitStateRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "DcsmCommonRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "SyncSocRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "DacaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "DacbRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "DaccRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "NmiIntruptRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "CpuTimer0RegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "CpuTimer1RegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "CpuTimer2RegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Emif1ConfigRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Emif2ConfigRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "XintRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "XbarRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "SciaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ScibRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ScicRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ScidRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "SpiaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "SpibRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "SpicRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "UidRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AdcaResultRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "AdcbResultRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "AdccResultRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "AdcdResultRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "DmaClaSrcSelRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "ECap1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ECap2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ECap3RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ECap4RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ECap5RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ECap6RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "PieCtrlRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss3RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss4RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss5RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss6RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss7RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Cmpss8RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "InputXbarRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "DcsmZ1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "DcsmZ2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EQep1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EQep2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EQep3RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "I2caRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "I2cbRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "IpcRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "McbspaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "McbspbRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Emif1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Emif2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Flash0EccRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "WdRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AccessProtectionRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "GpioDataRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "ClkCfgRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "MemoryErrorRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "AnalogSubsysRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Cla1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Clb1LogicCfgRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb2LogicCfgRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb3LogicCfgRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb4LogicCfgRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb1LogicCtrlRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb2LogicCtrlRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb3LogicCtrlRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb4LogicCtrlRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "ClbXbarRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwmXbarRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "OutputXbarRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Sdfm1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Sdfm2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "UppRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "MemCfgRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AdcaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AdcbRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AdccRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "AdcdRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "CpuSysRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "DmaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm1RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm2RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm3RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm4RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm5RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm6RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm7RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm8RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm9RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm10RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm11RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "EPwm12RegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Clb1DataExchRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb2DataExchRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb3DataExchRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "Clb4DataExchRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "DevCfgRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "CanaRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "CanbRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "GpioCtrlRegsFile" without a SECTIONS
+   specification
+warning #10247-D: creating output section "Flash0CtrlRegsFile" without a
+   SECTIONS specification
+warning #10247-D: creating output section "PieVectTableFile" without a SECTIONS
+   specification
+error #10430-D: ".TI.ramfunc" section generated by __attribute__((ramfunc)) or
+   --ramfunc=on requires a SECTIONS specification to function.
+warning #10247-D: creating output section ".reset" without a SECTIONS
+   specification
+warning #10247-D: creating output section ".cio" without a SECTIONS
+   specification
+ 
+ undefined          first referenced                   
+  symbol                in file                        
+ ---------          ----------------                   
+ _RamfuncsLoadSize  ./Example_F28379D_LaunchPadDemo.obj
+ _RamfuncsLoadStart ./Example_F28379D_LaunchPadDemo.obj
+ _RamfuncsRunStart  ./Example_F28379D_LaunchPadDemo.obj
+ 
+error #10234-D: unresolved symbols remain
+error #10010: errors encountered during linking; "test_adc_sample.out" not
+   built
+ 
+>> Compilation failure
+makefile:148: recipe for target 'test_adc_sample.out' failed
+gmake: *** [test_adc_sample.out] Error 1
+gmake: Target 'all' not remade because of errors.
+
+**** Build Finished ****

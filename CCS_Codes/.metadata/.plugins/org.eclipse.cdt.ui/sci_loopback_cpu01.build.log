@@ -1,0 +1,18 @@
+
+**** Build of configuration CPU1_RAM for project sci_loopback_cpu01 ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k all 
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/sci_loopback/cpu01/Example_2837xDScia_FFDLB.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" -g --define=CPU1 --display_error_number --diag_suppress=10063 --diag_warning=225 --preproc_with_compile --preproc_dependency="Example_2837xDScia_FFDLB.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/sci_loopback/cpu01/Example_2837xDScia_FFDLB.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/sci_loopback/cpu01/Example_2837xDScia_FFDLB.c"
+ 
+Building target: "sci_loopback_cpu01.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 -g --define=CPU1 --display_error_number --diag_suppress=10063 --diag_warning=225 -z -m"sci_loopback_cpu01.map" --stack_size=0x100 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/cmd" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/cmd" --reread_libs --display_error_number --xml_link_info="sci_loopback_cpu01_linkInfo.xml" --entry_point=code_start --rom_model -o "sci_loopback_cpu01.out" "./Example_2837xDScia_FFDLB.obj" "./F2837xD_CodeStartBranch.obj" "./F2837xD_DefaultISR.obj" "./F2837xD_GlobalVariableDefs.obj" "./F2837xD_Gpio.obj" "./F2837xD_Ipc.obj" "./F2837xD_PieCtrl.obj" "./F2837xD_PieVect.obj" "./F2837xD_SysCtrl.obj" "./F2837xD_usDelay.obj"  -lrts2800_fpu32.lib -l2837xD_RAM_lnk_cpu1.cmd -lF2837xD_Headers_nonBIOS_cpu1.cmd -llibc.a 
+<Linking>
+Finished building target: "sci_loopback_cpu01.out"
+ 
+
+**** Build Finished ****

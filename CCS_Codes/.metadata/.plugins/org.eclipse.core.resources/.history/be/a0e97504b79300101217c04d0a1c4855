@@ -1,0 +1,40 @@
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\driverlib.h"
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\device.h"
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\dsp.h"
+typedef float float32;
+#include "C:\ti\c2000\C2000Ware_6_00_00_00\libraries\dsp\FPU\c28\include\fpu32\fpu_rfft.h"
+#include <math.h>           // sinf()
+
+#define FFT_SIZE 256
+#define M_PI 3.14159265358979323846f
+
+#pragma DATA_SECTION(input, "ramgs0");
+#pragma DATA_SECTION(output, "ramgs1");
+
+float32 input[FFT_SIZE];
+float32 output[FFT_SIZE];
+
+void main(void)
+{
+    Device_init();
+    Device_initGPIO();
+
+    // Fill input with test sine wave
+    for(int i = 0; i < FFT_SIZE; i++)
+    {
+        input[i] = sinf(2.0f * M_PI * 10.0f * i / FFT_SIZE);
+    }
+
+    // Setup FFT object
+    RFFT_F32_STRUCT fft;
+    RFFT_F32_STRUCT_Handle hnd = &fft;
+
+    RFFT_f32_setInputPtr(hnd, input);
+    RFFT_f32_setOutputPtr(hnd, output);
+    RFFT_f32_setFFTSize(hnd, FFT_SIZE);
+
+    // Run FFT
+    RFFT_f32(hnd);
+
+    while(1);
+}

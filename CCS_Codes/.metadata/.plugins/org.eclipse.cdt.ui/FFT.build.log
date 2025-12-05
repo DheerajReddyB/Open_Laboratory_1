@@ -1,0 +1,28 @@
+
+**** Build of configuration Debug for project FFT ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 16 all -O 
+ 
+Building target: "FFT.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla1 --float_support=fpu32 --tmu_support=tmu0 --vcu_support=vcu2 --define=_FLASH --define=CPU1 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=coffabi -z -m"FFT.map" --stack_size=0x200 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dsp/FPU/c28/lib" -i"C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dsp/FPU/c28/include/fpu32" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="FFT_linkInfo.xml" --rom_model -o "FFT.out" "./main.obj" "./device/F2837xD_CodeStartBranch.obj" "./device/device.obj" "../2837x_FLASH_lnk_cpu1.cmd" "C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib/ccs/Debug/driverlib.lib" "../device/FFT.cmd"  -llibc.a -l"C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dsp/FPU/c28/lib/fpu32/fpu_rfft.lib" 
+<Linking>
+error #10008-D: cannot find file "C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dsp/FPU/c28/lib/fpu32/fpu_rfft.lib"
+warning #10247-D: creating output section "ramgs0" without a SECTIONS specification
+warning #10247-D: creating output section "ramgs1" without a SECTIONS specification
+ 
+ undefined first referenced
+  symbol       in file     
+ --------- ----------------
+ _RFFT_f32 ./main.obj      
+ 
+error #10234-D: unresolved symbols remain
+error #10010: errors encountered during linking; "FFT.out" not built
+ 
+>> Compilation failure
+makefile:142: recipe for target 'FFT.out' failed
+makefile:138: recipe for target 'all' failed
+gmake[1]: *** [FFT.out] Error 1
+gmake: *** [all] Error 2
+
+**** Build Finished ****

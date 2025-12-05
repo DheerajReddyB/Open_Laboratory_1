@@ -1,0 +1,262 @@
+//###########################################################################
+//
+// FILE:   Example_2837xDSpi_External_Loopback_measure_adc_capture.c
+//
+// TITLE:  ADC capture (ePWM 1 MHz SOCA) -> RAM -> UART dump
+//         Includes fixes: InitAdc/InitAdcAio, EPWM TBCLK div set to obtain 1MHz,
+//         larger ACQPS, and an ASCII sample preview prior to the binary dump.
+//
+//###########################################################################
+
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>           // for sprintf
+
+#include "F28x_Project.h"    // device headers (contains Uint16/Uint32 definitions)
+
+/* ---------- CONFIG ---------- */
+#define CAPTURE_SAMPLES  1024U         /* capture buffer size (change as desired) */
+#define ADC_CHANNEL      0x0EU         /* ADCIN14 */
+#define BAUDRATE         115200U
+#define TBPRD_1MHZ       99U           /* TBPRD for 1 MHz trigger given TBCLK=SYSCLK/2 */
+/* ---------------------------- */
+
+static volatile Uint16 adcBuffer[CAPTURE_SAMPLES];
+static volatile Uint32 sampleIndex = 0U;
+
+/* UART prototypes */
+void init_scia(Uint32 baud);
+void scia_send(Uint16 c);    /* use Uint16 because SCITXBUF.all is Uint16 */
+void uart_print(const char *msg);
+
+/* EPWM + ADC prototypes */
+void init_epwm_1mhz_trigger(void);
+void init_adc_epwm_triggered(void);
+
+/* Dump data */
+void dump_buffer_uart(void);
+
+/* ---------------- UART ---------------- */
+void init_scia(Uint32 baud)
+{
+    EALLOW;
+    /* route SCIA to GPIO42/43 (common LaunchPad examples) */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+    EDIS;
+
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007;  /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICTL1.all = 0x0003; /* enable TX/RX (in reset) */
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+
+    /* Baud settings for LSPCLK = 50 MHz (adjust if your LSPCLK differs) */
+    if (baud == 115200U)
+    {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;   /* for LSPCLK=50MHz */
+    }
+    else if (baud == 921600U)
+    {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 6U;
+    }
+    else
+    {
+        Uint32 scil = (50000000UL / (16UL * (Uint32)baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (Uint16)scil;
+    }
+
+    /* Release SCI from reset */
+    SciaRegs.SCICTL1.all = 0x0023;
+
+    EDIS;
+}
+
+/* Simple blocking send with slight delay to be robust.
+   SCITXBUF.all type is Uint16 so use Uint16 parameter */
+void scia_send(Uint16 c)
+{
+    SciaRegs.SCITXBUF.all = c;
+    DELAY_US(80); /* small pause for terminal reliability; increase if receiving PC can't keep up */
+}
+
+void uart_print(const char *msg)
+{
+    const char *p = msg;
+    while (*p) { scia_send((Uint16)(*p++)); }
+}
+
+/* ---------------- EPWM: 1 MHz trigger ---------------- */
+void init_epwm_1mhz_trigger(void)
+{
+    EALLOW;
+
+    /* Freeze time-base while configuring */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_FREEZE;
+
+    /* TBCLK = SYSCLK / (HSPCLKDIV * CLKDIV)
+       We set HSPCLKDIV = TB_DIV2 and CLKDIV = TB_DIV1 so TBCLK = SYSCLK/2.
+       With SYSCLK=200MHz -> TBCLK=100MHz -> TBPRD=99 => 1 MHz */
+    EPwm1Regs.TBCTL.bit.CLKDIV = TB_DIV1;      /* CLKDIV = /1 */
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = TB_DIV2;   /* HSPCLKDIV = /2 => TBCLK = SYSCLK/2 */
+
+    EPwm1Regs.TBPRD = TBPRD_1MHZ;              /* 99 -> 1 MHz when TBCLK=100MHz */
+
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+
+    /* Configure SOCA on counter = zero event */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO; /* generate SOCA when counter == 0 */
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;        /* generate on first event */
+
+    /* Start time-base counter */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+
+    EDIS;
+}
+
+/* ---------------- ADC: triggered by ePWM1 SOCA ---------------- */
+void init_adc_epwm_triggered(void)
+{
+    EALLOW;
+
+    /* ADCCLK prescale -> ADCCLK = SYSCLK/4 -> when SYSCLK=200MHz ADCCLK=50MHz */
+    AdcaRegs.ADCCTL2.bit.PRESCALE = 6;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = 6;
+
+    /* Choose 12-bit single-ended */
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;         /* power up ADC */
+    DELAY_US(1000);
+
+    /* SOC0 configuration: ADCIN14 */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 30U;       /* larger acquisition window for safety */
+
+    /* TRIGSEL: ePWM1 SOCA -> use macro if available else fallback to 5 */
+#ifdef ADCTRIG_EPWM1_SOCA
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 5U;
+#endif
+
+    /* Map ADCINT1 to EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0; /* EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+    EDIS;
+}
+
+/* ---------------- Dump buffer ---------------- */
+void dump_buffer_uart(void)
+{
+    uart_print("CAPTURE_DONE\n");
+
+    /* send LSB then MSB per sample */
+    {
+        Uint32 idx;
+        for (idx = 0U; idx < (Uint32)CAPTURE_SAMPLES; ++idx)
+        {
+            Uint16 v = adcBuffer[idx];
+            scia_send((Uint16)(v & 0xFFU));
+            scia_send((Uint16)(v >> 8));
+        }
+    }
+
+    uart_print("\nCAPTURE_END\n");
+}
+
+/* ---------------- MAIN ---------------- */
+int main(void)
+{
+#ifdef _FLASH
+    /* copy RAM functions if running from flash */
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    /* Basic system setup */
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    /* ADC helpers: route ADC AIO pins and initialize ADC modules */
+    /* These are TI-provided helper functions in many examples */
+    InitAdc();      /* initialize ADC modules (clock, power sequencing, etc.) */
+    InitAdcAio();   /* map ADC pins to analog (AIO) function */
+
+    /* Init UART */
+    init_scia(BAUDRATE);
+
+    /* Quick hello lines */
+    uart_print("HELLO\n");
+    uart_print("HELLO\n");
+    uart_print("HELLO\n");
+
+    uart_print("CAPTURE_STARTED\n");
+
+    /* Configure EPWM and ADC */
+    init_epwm_1mhz_trigger();
+    init_adc_epwm_triggered();
+
+    /* Start ePWM timebase (TBCLKSYNC) */
+    EALLOW;
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
+    EDIS;
+
+    /* capture loop: poll ADCINT1 and store samples */
+    sampleIndex = 0U;
+    while (sampleIndex < (Uint32)CAPTURE_SAMPLES)
+    {
+        if (AdcaRegs.ADCINTFLG.bit.ADCINT1)
+        {
+            /* clear flag first */
+            AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+            /* read sample */
+            adcBuffer[sampleIndex] = (Uint16)AdcaResultRegs.ADCRESULT0;
+            sampleIndex++;
+        }
+    }
+
+    /* stop ePWM (freeze) to be safe */
+    EALLOW;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_FREEZE;
+    EDIS;
+
+    /* Print a small ASCII preview of first few samples for quick terminal verification */
+    {
+        Uint32 i;
+        char tmpbuf[48];
+        uart_print("SAMPLE_PREVIEW\n");
+        for (i = 0U; i < 8U && i < (Uint32)CAPTURE_SAMPLES; ++i)
+        {
+            Uint16 v = adcBuffer[i];
+            /* print decimal value + newline */
+            sprintf(tmpbuf, "%u\n", (unsigned)v);
+            uart_print(tmpbuf);
+        }
+        uart_print("END_PREVIEW\n");
+    }
+
+    /* Dump buffer over UART (binary LSB then MSB) */
+    dump_buffer_uart();
+
+    /* Halt */
+    for (;;)
+    {
+        __asm(" NOP");
+    }
+
+    return 0;
+}

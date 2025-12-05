@@ -5,8 +5,8 @@
 	<section name="com.ti.ccstudio.project.ui.internal.properties.DynamicPropertiesPageManager">
 	</section>
 	<section name="com.ti.ccstudio.project.ui.internal.wizards.importexport.ProjectImportPage">
-		<item key="CCS.BROWSE_DIRS_FILTER" value="D:\SEM-5\Open_Laboratory_1\CCS_Codes\blink_led"/>
-		<item key="CCS.COPY_INTO_WORKSPACE" value="false"/>
+		<item key="CCS.BROWSE_DIRS_FILTER" value="C:\ti\c2000\C2000Ware_6_00_00_00\device_support\f2837xd\examples\cpu1\blinky"/>
+		<item key="CCS.COPY_INTO_WORKSPACE" value="true"/>
 		<item key="CCS.IMPORT_REFERENCED_PROJECTS" value="false"/>
 		<item key="CCS.IMPORT_FROM_ARCHIVE" value="false"/>
 	</section>

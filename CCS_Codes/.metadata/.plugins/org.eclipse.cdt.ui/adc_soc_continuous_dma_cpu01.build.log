@@ -1,0 +1,74 @@
+
+**** Build of configuration CPU1_RAM for project adc_soc_continuous_dma_cpu01 ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k all 
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_Adc.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Adc.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_CodeStartBranch.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_CodeStartBranch.asm"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_DefaultISR.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_DefaultISR.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Dma.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_Dma.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Dma.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Dma.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_GlobalVariableDefs.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/source/F2837xD_GlobalVariableDefs.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_Gpio.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Gpio.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Ipc.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_Ipc.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Ipc.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_Ipc.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_PieCtrl.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieCtrl.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_PieVect.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_PieVect.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_SysCtrl.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c", line 837 (col. 47): advice #2614-D: (Performance) Use --fp_mode=relaxed to enable TMU hardware support for FP division.
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_SysCtrl.c"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="F2837xD_usDelay.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/source/F2837xD_usDelay.asm"
+ 
+Building file: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/adc_soc_continuous_dma/cpu01/adc_soc_continuous_dma_cpu01.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/include" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/libraries/dma/F2837xD" --include_path="C:/ti/c2000/C2000Ware_6_00_00_00/driverlib/f2837xd/driverlib" -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 --preproc_with_compile --preproc_dependency="adc_soc_continuous_dma_cpu01.d_raw"  "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/adc_soc_continuous_dma/cpu01/adc_soc_continuous_dma_cpu01.c"
+Finished building: "C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/examples/cpu1/adc_soc_continuous_dma/cpu01/adc_soc_continuous_dma_cpu01.c"
+ 
+Building target: "adc_soc_continuous_dma_cpu01.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 --cla_support=cla1 --tmu_support=tmu0 --vcu_support=vcu2 -g --define=CPU1 --display_error_number --diag_suppress=1311 --diag_warning=225 -z -m"adc_soc_continuous_dma_cpu01.map" --stack_size=0x100 --warn_sections -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/common/cmd" -i"C:/ti/c2000/C2000Ware_6_00_00_00/device_support/f2837xd/headers/cmd" --reread_libs --display_error_number --xml_link_info="adc_soc_continuous_dma_cpu01_linkInfo.xml" --rom_model -o "adc_soc_continuous_dma_cpu01.out" "./F2837xD_Adc.obj" "./F2837xD_CodeStartBranch.obj" "./F2837xD_DefaultISR.obj" "./F2837xD_Dma.obj" "./F2837xD_GlobalVariableDefs.obj" "./F2837xD_Gpio.obj" "./F2837xD_Ipc.obj" "./F2837xD_PieCtrl.obj" "./F2837xD_PieVect.obj" "./F2837xD_SysCtrl.obj" "./F2837xD_usDelay.obj" "./adc_soc_continuous_dma_cpu01.obj"  -lrts2800_fpu32.lib -l2837xD_RAM_lnk_cpu1.cmd -lF2837xD_Headers_nonBIOS_cpu1.cmd -llibc.a 
+<Linking>
+Finished building target: "adc_soc_continuous_dma_cpu01.out"
+ 
+
+**** Build Finished ****

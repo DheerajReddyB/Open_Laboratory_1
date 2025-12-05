@@ -1,0 +1,84 @@
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\driverlib.h"
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\device.h"
+#include "D:\SEM-5\Open_Laboratory_1\CCS_Codes\FFT\device\dsp.h"
+#include <stdio.h>
+#include <math.h>
+
+#define FFT_SIZE       1024
+#define SAMPLING_FREQ  20000
+
+// Buffers
+float input[FFT_SIZE];
+float fftOutput[FFT_SIZE];
+float magnitude[FFT_SIZE/2];
+
+// FFT Parameters
+msp_fft_f32_params fftParams;
+
+// UART send function
+void uartSendChar(char c)
+{
+    while(!SCI_isTransmitterReady(SCIA_BASE));
+    SCI_writeCharBlockingFIFO(SCIA_BASE, c);
+}
+
+void uartSendString(char *str)
+{
+    while(*str)
+    {
+        uartSendChar(*str++);
+    }
+}
+
+void main(void)
+{
+    // Init device
+    Device_init();
+    Device_initGPIO();
+    Interrupt_initModule();
+    Interrupt_initVectorTable();
+
+    // --- Configure GPIO for SCI-A (GPIO42=TX, GPIO43=RX) ---
+    GPIO_setPinConfig(GPIO_42_SCITXDA);
+    GPIO_setPinConfig(GPIO_43_SCIRXDA);
+    GPIO_setDirectionMode(42, GPIO_DIR_MODE_OUT);
+    GPIO_setDirectionMode(43, GPIO_DIR_MODE_IN);
+
+    // --- Configure SCI-A UART ---
+    SCI_performSoftwareReset(SCIA_BASE);
+    SCI_setConfig(SCIA_BASE, DEVICE_LSPCLK_FREQ, 115200, (SCI_CONFIG_WLEN_8 | SCI_CONFIG_STOP_ONE | SCI_CONFIG_PAR_NONE));
+    SCI_resetChannels(SCIA_BASE);
+    SCI_enableModule(SCIA_BASE);
+    SCI_resetChannels(SCIA_BASE);
+
+    // --- Test FFT with synthetic sine ---
+    for(int i=0; i<FFT_SIZE; i++)
+    {
+        input[i] = sinf(2 * M_PI * 1000 * i / SAMPLING_FREQ); // 1 kHz tone
+    }
+
+    fftParams.length = FFT_SIZE;
+    fftParams.bitReverse = true;
+    fftParams.twiddleTable = msp_cmplx_twiddle_table_1024;
+
+    // Run FFT
+    msp_fft_f32(&fftParams, (float *)input, (float *)fftOutput);
+
+    // Compute magnitude
+    for(int k=0; k<FFT_SIZE/2; k++)
+    {
+        float re = fftOutput[2*k];
+        float im = fftOutput[2*k+1];
+        magnitude[k] = sqrtf(re*re + im*im);
+    }
+
+    // --- Send FFT magnitude via UART ---
+    char buffer[50];
+    for(int k=0; k<FFT_SIZE/2; k++)
+    {
+        sprintf(buffer, "%d,%.2f\r\n", k, magnitude[k]);  // "bin, magnitude"
+        uartSendString(buffer);
+    }
+
+    while(1);
+}

@@ -1,0 +1,158 @@
+// epwm_trig_probe.c
+// Probe ADCA SOC0 TRIGSEL numeric mapping by trying candidates and watching ADCINT1.
+// Paste into a NEW CCS source file (epwm_trig_probe.c). Build & flash, open terminal BEFORE reset.
+
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "F28x_Project.h"
+
+#define DUMP_BAUDRATE 115200U
+#define ADC_CHANNEL   14U
+#define ADC_PRESCALE  6U
+#define ADC_ACQPS     20U
+#define TBPRD_DEFAULT 99U
+
+/* simple blocking SCIA send */
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    DELAY_US(150);
+}
+void scia_print(const char *s) { const char *p=s; while(*p) scia_send_byte_blocking((unsigned char)*p++); }
+void scia_printf(const char *fmt, unsigned int a, unsigned int b, unsigned int c)
+{
+    char buf[128];
+    int n = sprintf(buf, fmt, a, b, c);
+    int i;
+    for (i=0;i<n;++i) scia_send_byte_blocking((unsigned char)buf[i]);
+}
+
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    /* Route SCIA to GPIO42/43 TX/RX */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+    EDIS;
+
+    SciaRegs.SCICCR.all = 0x0007;
+    SciaRegs.SCICTL1.all = 0x0003;
+    if (baud == 115200U) { SciaRegs.SCIHBAUD.all = 0; SciaRegs.SCILBAUD.all = 53; }
+    else { SciaRegs.SCIHBAUD.all = 0; SciaRegs.SCILBAUD.all = 53; }
+    SciaRegs.SCICTL1.all = 0x0023;
+}
+
+void initEPWM1_for_probe(uint32_t tbprd)
+{
+    EALLOW;
+    EPwm1Regs.TBCTL.bit.CLKDIV = TB_DIV1;
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBPRD = tbprd;
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_DISABLE; /* start stopped */
+    EDIS;
+}
+
+void initADC_probe(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(2000);
+
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ADC_ACQPS;
+
+    /* don't set TRIGSEL here (we will change it dynamically later) */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0; /* EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    EDIS;
+}
+
+int main(void)
+{
+    int candidate;
+    uint32_t tbprd = TBPRD_DEFAULT;
+    uint32_t iter;
+    uint32_t seen;
+
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    initSCIA_blocking(DUMP_BAUDRATE);
+    scia_print("HELLO\nHELLO\nHELLO\n");
+    scia_print("PROBE_INIT\n");
+
+    initADC_probe();
+    initEPWM1_for_probe(tbprd);
+
+    scia_printf("INFO TBPRD=%u\n", (unsigned int)tbprd, 0, 0);
+
+    /* candidate TRIGSEL range to try: 3..9 (common values around EPWM1 SOCA) */
+    for (candidate = 3; candidate <= 9; ++candidate) {
+        /* set TRIGSEL to candidate */
+        EALLOW;
+        AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = candidate;
+        /* clear any leftover flags */
+        AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+        EDIS;
+
+        /* print header */
+        scia_printf("TRY TRIGSEL=%u ...\n", (unsigned int)candidate, 0, 0);
+
+        /* start ePWM */
+        EALLOW;
+        EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+        EDIS;
+
+        /* watch for conversions for a short burst (200 loops) */
+        seen = 0;
+        for (iter = 0; iter < 200; ++iter) {
+            /* check ADCINT1 */
+            if (AdcaRegs.ADCINTFLG.bit.ADCINT1) {
+                /* read result, clear flag */
+                uint32_t r = (uint32_t)AdcaResultRegs.ADCRESULT0;
+                AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+                scia_printf("  -> ADCINT1 observed, ADCRES=%u\n", r, 0, 0);
+                seen = 1;
+                break;
+            }
+            DELAY_US(1000); /* 1 ms */
+        }
+
+        /* stop ePWM */
+        EALLOW;
+        EPwm1Regs.TBCTL.bit.CTRMODE = TB_DISABLE;
+        EDIS;
+
+        if (!seen) {
+            scia_print("  -> no ADCINT1 observed for this TRIGSEL\n");
+        }
+
+        /* short gap before next candidate */
+        DELAY_US(200000);
+    }
+
+    scia_print("PROBE_DONE\n");
+
+    for (;;)
+        __asm(" NOP");
+    return 0;
+}

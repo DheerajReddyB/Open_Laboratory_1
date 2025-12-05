@@ -1,0 +1,269 @@
+// epwm_adc_polled_capture.c
+// Polled ADC capture: ePWM -> SOCA -> ADCA SOC0 -> main() polls ADCINT1 and copies ADCRESULT0 -> RAM
+// Useful to validate ePWM trigger, ADC, wiring & SCIA dump WITHOUT interrupts or DMA.
+// Not intended for sustained 1 MSPS, but perfect for checking everything and debugging.
+//
+// Usage:
+//  - Paste into CCS project, build & flash.
+//  - Open terminal @115200. Reset board. You should see HELLO x3, CAPTURE_STARTED, CAPTURE_DONE, CAPTURE_BIN, binary bytes, CAPTURE_END.
+//  - Capture binary into data.bin and run your Python decode.
+//
+// Author: ChatGPT (adapted for F28379D)
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+/* -------- CONFIGURATION -------- */
+#define CAPTURE_SAMPLES   (2048U)    // buffer size for polled validation
+#define ADC_CHANNEL       0x0EU      // ADCIN14
+#define DUMP_BAUDRATE     115200U
+
+/* TEST RATE: conservative 100 kHz so polling main loop keeps up reliably.
+   With SYSCLK=200MHz and TBCLK_DIV=4 => TBCLK=50MHz.
+   TBPRD = TBCLK/desired_rate - 1 = 50e6/100e3 - 1 = 499
+*/
+#define TBCLK_DIV         4U
+#define TBPRD_TEST_100KHZ 499U
+
+/* ADC acquisition */
+#define ADC_PRESCALE      6U
+#define ADC_ACQPS         20U
+
+/* ----------------- globals ----------------- */
+static volatile uint16_t adcBuffer[CAPTURE_SAMPLES];
+static volatile uint32_t sampleIndex = 0U;
+
+/* Forward prototypes */
+void initSCIA_blocking(uint32_t baud);
+void scia_send_byte_blocking(unsigned char b);
+void initSCIA_and_pins(uint32_t baud);
+
+void initEPWM_for_test(void);
+void initADC_for_epwm_trigger(void);
+
+void dump_buffer_over_uart_with_header(uint32_t n);
+
+/* ---------- SCIA helpers ---------- */
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007;  /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICTL1.all = 0x0003;
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+    EDIS;
+
+    /* Baud calculation for LSPCLK = 50 MHz (typical when SYSCLK=200MHz) */
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;   /* approximate for 115200 @50MHz */
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+
+    /* Release SCI from reset */
+    SciaRegs.SCICTL1.all = 0x0023;
+}
+
+/* Robust blocking send: write byte then small delay */
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    DELAY_US(200);
+}
+
+/* Configure SCIA TX/RX pinmux, optional LED, init SCIA, send triple HELLO as startup test */
+void initSCIA_and_pins(uint32_t baud)
+{
+    int rep;
+    EALLOW;
+
+    /* Route SCIA to GPIO42/43 (common on many F2837xD examples) */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+
+    /* Configure a visible LED pin as output (GPIO31 example) */
+    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;
+    GpioDataRegs.GPADAT.bit.GPIO31 = 1; /* LED off (board dependent) */
+
+    EDIS;
+
+    initSCIA_blocking(baud);
+
+    /* Triple HELLO for easy visual confirmation in terminal */
+    {
+        const char *hello = "HELLO\n";
+        const char *p;
+        for (rep = 0; rep < 3; ++rep) {
+            p = hello;
+            while (*p) {
+                scia_send_byte_blocking((unsigned char)*p++);
+            }
+            DELAY_US(20000);
+        }
+    }
+}
+
+/* ---------- ePWM test init (100 kHz default) ---------- */
+void initEPWM_for_test(void)
+{
+    EALLOW;
+    /* Set prescalers to /1 */
+    EPwm1Regs.TBCTL.bit.CLKDIV = 0;
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = 0;
+
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBPRD = TBPRD_TEST_100KHZ;
+
+    /* Enable SOCA on Zero */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+    EDIS;
+}
+
+/* ---------- ADC init for ePWM SOCA trigger ---------- */
+void initADC_for_epwm_trigger(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000);
+
+    /* SOC0 -> ADCIN14 */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ADC_ACQPS;
+
+    /* TRIGSEL: map ePWM1 SOCA to SOC0. Prefer macro if available, fallback numeric. */
+#ifdef ADCTRIG_EPWM1_SOCA
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+#elif defined(ADCTRIG1)
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG1;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 6U; /* common fallback - adjust if your headers define a different mapping */
+#endif
+
+    /* Map ADCINT1 to EOC0 so we can poll ADCINT1 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0; /* EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;   /* enable the flag (we'll poll) */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1; /* clear any existing flag */
+    EDIS;
+}
+
+/* ---------- Dump buffer over UART ---------- */
+void dump_buffer_over_uart_with_header(uint32_t n)
+{
+    uint32_t i;
+    const char *hdr = "CAPTURE_BIN\n";
+    const char *p = hdr;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+
+    /* Toggle LED briefly */
+    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
+    DELAY_US(500);
+    GpioDataRegs.GPASET.bit.GPIO31 = 1;
+
+    for (i = 0; i < n; ++i) {
+        uint16_t vv = adcBuffer[i];
+        scia_send_byte_blocking((unsigned char)(vv & 0xFF));
+        scia_send_byte_blocking((unsigned char)(vv >> 8));
+    }
+
+    const char *endm = "\nCAPTURE_END\n";
+    p = endm;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+}
+
+/* ---------- MAIN: polled capture loop ---------- */
+int main(void)
+{
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    uint32_t i;
+    uint32_t timeout_us;
+    uint32_t waited_us;
+    uint32_t poll_interval_us = 10U; /* poll every 10 us */
+    uint16_t val;
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    /* Initialize SCIA and pins */
+    initSCIA_and_pins(DUMP_BAUDRATE);
+
+    /* Initialize ePWM and ADC */
+    initEPWM_for_test();
+    initADC_for_epwm_trigger();
+
+    /* Announce start */
+    {
+        const char *msg = "CAPTURE_STARTED\n";
+        const char *q = msg;
+        uint32_t idx;
+        for (idx = 0; idx < strlen(q); ++idx) scia_send_byte_blocking((unsigned char)q[idx]);
+    }
+
+    /* Clear buffer and index */
+    for (i = 0; i < CAPTURE_SAMPLES; ++i) adcBuffer[i] = 0;
+    sampleIndex = 0U;
+
+    /* Start ePWM counter */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+
+    /* Polling loop: wait for ADCINT1 flag, read result, clear flag, store */
+    /* We add a timeout guard just in case (capture duration ~ CAPTURE_SAMPLES / sample_rate) */
+    timeout_us = (CAPTURE_SAMPLES / 1000U) * 2000U + 100000U; /* very conservative */
+    waited_us = 0U;
+
+    while (sampleIndex < CAPTURE_SAMPLES && waited_us < timeout_us) {
+        /* Poll ADCINT1 flag (ADCA) */
+        if (AdcaRegs.ADCINTFLG.bit.ADCINT1 == 1) {
+            /* Read result */
+            val = (uint16_t)AdcaResultRegs.ADCRESULT0;
+            adcBuffer[sampleIndex++] = val;
+
+            /* Clear ADCINT1 flag */
+            AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+        } else {
+            /* small sleep to avoid hogging CPU too hard */
+            DELAY_US(poll_interval_us);
+            waited_us += poll_interval_us;
+        }
+    }
+
+    /* Signal capture done */
+    {
+        const char *msg = "CAPTURE_DONE\n";
+        const char *q = msg;
+        uint32_t idx;
+        for (idx = 0; idx < strlen(q); ++idx) scia_send_byte_blocking((unsigned char)q[idx]);
+    }
+
+    /* Dump buffer */
+    dump_buffer_over_uart_with_header(sampleIndex);
+
+    /* Halt */
+    for (;;) { __asm(" NOP"); }
+
+    return 0;
+}

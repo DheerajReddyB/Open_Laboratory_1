@@ -1,0 +1,323 @@
+// epwm1_adc1msps_edma_capture.c
+// 1 MSPS capture using ePWM1 -> SOCA -> ADCA SOC0 -> EDMA -> RAM -> UART dump
+// Uses C2000Ware-style DMA helper API where available (DMAInitialize/DMA_config/DMA_start).
+// If your SDK uses slightly different names, replace the DMA helper calls with the equivalents in your SDK/examples.
+//
+// Author: ChatGPT (adapted for F28379D)
+//
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+/* -------- CONFIGURATION -------- */
+#define CAPTURE_SAMPLES   (8192U)    /* adjust as needed; 8192 -> 8k samples (8 ms at 1 MSPS) */
+#define ADC_CHANNEL       0x0EU      /* ADCIN14 */
+#define DUMP_BAUDRATE     115200U
+
+/* ePWM / sample-rate settings (assumes SYSCLK = 200 MHz) */
+#define SYSCLK_HZ         200000000UL
+#define TBCLK_DIV         4U         /* TBCLK = SYSCLK / TBCLK_DIV -> 50 MHz */
+#define TBPRD_1MSPS       49U        /* TBCLK/(TBPRD+1) = 50e6/50 = 1e6 -> 1 MHz SOCA */
+
+/* ADC clock / acquisition */
+#define ADC_PRESCALE      6U         /* ADCCLK prescale (keeps ADCCLK ~50MHz for SYSCLK=200MHz) */
+#define ADC_ACQPS         6U         /* ACQPS+1 ADCCLK cycles acquisition window */
+
+/* --------------------------------*/
+
+/* Place buffer in RAM section (fast RAM) */
+#pragma DATA_SECTION(adcBuffer, "ramgs0");
+static volatile uint16_t adcBuffer[CAPTURE_SAMPLES];
+static volatile uint32_t dmaTransferComplete = 0U;
+
+/* Forward prototypes */
+void initSCIA_blocking(uint32_t baud);
+void scia_send_byte_blocking(unsigned char b);
+void initSCIA_and_pins(uint32_t baud);
+
+void initEPWM_for_1MHz_SOCA(void);
+void initADC_for_epwm_trigger(void);
+void initEDMA_for_adc_to_ram(void);
+
+void start_capture_and_wait(void);
+void dump_buffer_over_uart_with_header(uint32_t n);
+
+/* ---------------- SCIA helpers ---------------- */
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007;  /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICTL1.all = 0x0003;
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+
+    /* Baud calculation for LSPCLK = 50 MHz (typical when SYSCLK=200MHz) */
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;   /* approximate for 115200 @50MHz */
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+    SciaRegs.SCICTL1.all = 0x0023; /* Release SCI from reset */
+    EDIS;
+}
+
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    DELAY_US(200);
+}
+
+void initSCIA_and_pins(uint32_t baud)
+{
+    EALLOW;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+
+    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;  /* LED pin */
+    GpioDataRegs.GPADAT.bit.GPIO31 = 1;
+    EDIS;
+
+    initSCIA_blocking(baud);
+
+    const char *hello = "HELLO\n";
+    for (int rep=0; rep<3; ++rep) {
+        const char *p = hello;
+        while (*p) scia_send_byte_blocking((unsigned char)*p++);
+        DELAY_US(20000);
+    }
+}
+
+/* ---------------- ePWM1 init to generate SOCA @ 1 MHz ---------------- */
+void initEPWM_for_1MHz_SOCA(void)
+{
+    EALLOW;
+    /* Time-Base control */
+    EPwm1Regs.TBCTL.bit.CLKDIV = TB_DIV1;    /* HSPCLKDIV/CLKDIV = 1/1 */
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBPRD = TBPRD_1MSPS;
+
+    /* ET (Event Trigger) - generate SOCA when TBCTR == 0 */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+    EDIS;
+}
+
+/* ---------------- ADC init for ePWM SOCA trigger (ADCA SOC0) ---------------- */
+void initADC_for_epwm_trigger(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000);
+
+    /* SOC0 config */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ADC_ACQPS;
+
+    /* Set TRIGSEL to ePWM1 SOCA. Use defined macro if available, otherwise a safe numeric fallback. */
+#ifdef ADCTRIG_EPWM1_SOCA
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+#elif defined(ADCTRIG1)
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG1;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 6U; /* adjust if your header uses different mapping */
+#endif
+
+    /* Map ADCINT1 to EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    EDIS;
+}
+
+/* ---------------- EDMA init: ADCA result -> RAM buffer ----------------
+   We use C2000Ware DMA helper APIs if present. If your SDK doesn't expose these functions,
+   replace with the EDMA example from your C2000Ware installation (examples/adc_soc_epwm_dma).
+*/
+void initEDMA_for_adc_to_ram(void)
+{
+    EALLOW;
+
+    /* Reset DMA controller (API name may vary across SDKs) */
+#ifdef DMAInitialize
+    DMAInitialize();
+#else
+    /* If DMAInitialize() isn't available in your SDK, zero DMA regs as fallback */
+    DmaRegs.DMACTRL.bit.HARDRESET = 1;
+    DELAY_US(10);
+    DmaRegs.DMACTRL.bit.HARDRESET = 0;
+#endif
+
+    /* Use DMA Channel 1 for ADC->RAM transfer */
+    /* Many C2000Ware examples use function DMA_config / DMA_start. We'll attempt that pattern.
+       If your SDK doesn't have DMA_config, use the example project 'adc_soc_epwm_dma' to copy the EDMA config. */
+
+#if defined(DMA_config)
+    {
+        DMA_Config config;
+        config.sourceAddr = (uint16_t *)&AdcaResultRegs.ADCRESULT0;
+        config.destAddr = (uint16_t *)adcBuffer;
+        config.elementSize = DMA_HALFWORD;    /* 16-bit */
+        config.elementCount = 1;              /* elements per event */
+        config.frameCount = CAPTURE_SAMPLES;  /* elements per transfer (total samples) */
+        config.peripheralInterrupt = PERINT_ADCINT1; /* hardware trigger from ADCINT1; adjust define if different */
+        config.channel = 1;
+        DMA_config(&config);
+    }
+    /* Start/arm DMA channel 1 */
+    DMA_start(1);
+#else
+    /* Fallback: do register-level EDMA config where possible.
+       Note: register/field names vary across SDK versions; edit as needed if compiler flags missing fields. */
+
+    /* Example register-level setup (may require edit for your headers) */
+    DmaRegs.CH1.SRC_TPTR = (uint32_t)&AdcaResultRegs.ADCRESULT0;
+    DmaRegs.CH1.DST_TPTR = (uint32_t)adcBuffer;
+    DmaRegs.CH1.TRN_CTRL.bit.ELEMENTSIZE = 1;    /* halfword */
+    DmaRegs.CH1.TRN_CTRL.bit.ELEMENTCOUNT = 1;
+    DmaRegs.CH1.FRMCNT = CAPTURE_SAMPLES;
+    /* Map DMA trigger to ADCINT1 (PERINTSEL or similar) - header name may vary */
+#ifdef DMA_PERINTSEL_ADCINT1
+    DmaRegs.CH1.PERINTSEL = DMA_PERINTSEL_ADCINT1;
+#elif defined(DMA_PERINTSEL_ADC1)
+    DmaRegs.CH1.PERINTSEL = DMA_PERINTSEL_ADC1;
+#else
+    /* You must set the proper peripheral trigger mapping here for your device */
+#endif
+    /* Enable the channel */
+    DmaRegs.CH1.CHCTRL.bit.CHEN = 1;
+#endif
+
+    EDIS;
+}
+
+/* ---------------- Start capture (arm EDMA, start ePWM) ---------------- */
+void start_capture_and_wait(void)
+{
+    /* Clear ADCINT1 flag */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+    /* Clear RAM buffer (for easier done detection) */
+    for (uint32_t i = 0; i < CAPTURE_SAMPLES; ++i) adcBuffer[i] = 0;
+
+    /* Arm DMA channel (API or register-level) */
+#ifdef DMA_armChannel
+    DMA_armChannel(1);
+#elif defined(DMA_start)
+    /* already started in initEDMA_for_adc_to_ram if DMA_start used */
+#else
+    /* If register-based, ensure channel is enabled (depends on your header names) */
+    /* Example: DmaRegs.CH1.CHCTRL.bit.CHEN = 1; */
+#endif
+
+    /* Start ePWM TB counter (assumes ePWM peripheral clock is running) */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP; /* ensure counter mode set */
+
+    /* Small delay to stabilize then signal user */
+    DELAY_US(100);
+
+    /* Announce start */
+    {
+        const char *msg = "CAPTURE_STARTED\n";
+        const char *q = msg;
+        while (*q) scia_send_byte_blocking((unsigned char)*q++);
+    }
+
+    /* Wait for DMA transfer complete - prefer DMA TC interrupt; fallback poll on buffer full */
+#if defined(DMA_isChannelComplete)
+    while (!DMA_isChannelComplete(1)) { DELAY_US(100); }
+#elif defined(DmaRegs)
+    /* Poll for last buffer element being written (simple heuristic) */
+    uint32_t timeout_us = (CAPTURE_SAMPLES / 1000U) * 20U + 1000U;
+    uint32_t waited = 0;
+    while (adcBuffer[CAPTURE_SAMPLES - 1] == 0 && waited < timeout_us) {
+        DELAY_US(100);
+        waited += 100;
+    }
+#else
+    /* If no API, just delay for capture duration + margin */
+    DELAY_US((CAPTURE_SAMPLES / 1000U) + 1000); /* crude guard */
+#endif
+
+    /* small settle */
+    DELAY_US(200);
+
+    /* Announce done */
+    {
+        const char *msg = "CAPTURE_DONE\n";
+        const char *q = msg;
+        while (*q) scia_send_byte_blocking((unsigned char)*q++);
+    }
+
+    /* Dump buffer */
+    dump_buffer_over_uart_with_header(CAPTURE_SAMPLES);
+}
+
+/* ---------------- Dump buffer over UART ---------------- */
+void dump_buffer_over_uart_with_header(uint32_t n)
+{
+    const char *hdr = "CAPTURE_BIN\n";
+    const char *p = hdr;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+
+    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
+    DELAY_US(1000);
+    GpioDataRegs.GPASET.bit.GPIO31 = 1;
+
+    for (uint32_t i = 0U; i < n; ++i) {
+        uint16_t v = adcBuffer[i];
+        scia_send_byte_blocking((unsigned char)(v & 0xFF));
+        scia_send_byte_blocking((unsigned char)(v >> 8));
+    }
+
+    const char *endm = "\nCAPTURE_END\n";
+    p = endm;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+}
+
+/* ---------------------- MAIN ---------------------- */
+int main(void)
+{
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    initSCIA_and_pins(DUMP_BAUDRATE);
+    initADC_for_epwm_trigger();
+    initEPWM_for_1MHz_SOCA();
+    initEDMA_for_adc_to_ram();
+
+    DELAY_US(1000);
+
+    start_capture_and_wait();
+
+    for (;;)
+    {
+        __asm(" NOP");
+    }
+    return 0;
+}

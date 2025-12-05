@@ -1,0 +1,267 @@
+// epwm1_capture_trig5_1MSPS.c
+// ePWM1 SOCA -> ADCA SOC0 -> polled capture -> RAM -> SCIA binary dump
+// Uses TRIGSEL = 5 (EPWM1 SOCA mapping that worked on your board).
+// Optional 1 MSPS settings included (TBPRD=49).
+//
+// Paste into a NEW CCS source file. Exclude demo/example files from build.
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+/* ---------- CONFIG ---------- */
+#define CAPTURE_SAMPLES   (1024U)   /* adjust as needed (RAM usage = samples*2 bytes) */
+#define ADC_CHANNEL       14U       /* ADCIN14 (make sure your signal is here) */
+#define DUMP_BAUDRATE     115200U
+
+/* Choose sample rate via TBPRD:
+   SYSCLK = 200 MHz typical -> TBCLK = SYSCLK / TBCLK_DIV
+   TBCLK_DIV = 4 -> TBCLK = 50 MHz
+   sample_rate = TBCLK / (TBPRD + 1)
+
+   - For 500 kS/s: TBPRD = 99  (50e6/100 = 500000)
+   - For 1.0 MS/s: TBPRD = 49  (50e6/50  = 1000000)
+*/
+#define TBCLK_DIV         4U
+#define TBPRD_500KSPS     99U
+#define TBPRD_1MSPS       49U
+
+/* Select desired TBPRD here */
+#define TBPRD_DEFAULT     TBPRD_1MSPS
+
+/* ADC timing: ADCCLK prescale and ACQPS (acquisition window = ACQPS+1 cycles)
+   For ADCCLK = 50 MHz, ACQPS should be small for high sample rates.
+   ACQPS = 6 => sample window = 7 ADCCLK cycles (7/50e6 = 140 ns) -> needs low source impedance.
+*/
+#define ADC_PRESCALE      6U
+#define ADC_ACQPS         6U
+
+/* Delay before dump (allow host to prepare) */
+#define PRE_DUMP_DELAY_US (1000000U)  /* 1 second */
+
+/* ---------------- globals ---------------- */
+static volatile uint16_t adcBuffer[CAPTURE_SAMPLES];
+static volatile uint32_t sampleIndex = 0U;
+
+/* ---------- SCIA helpers ---------- */
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    DELAY_US(200);
+}
+
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    SciaRegs.SCICCR.all = 0x0007; /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICTL1.all = 0x0003;
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+    EDIS;
+
+    /* Baud config for LSPCLK ~50 MHz */
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+    SciaRegs.SCICTL1.all = 0x0023; /* release SCI from reset */
+}
+
+void initSCIA_and_pins(uint32_t baud)
+{
+    int rep;
+    EALLOW;
+    /* route SCIA to GPIO42/43 */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+    /* LED pin */
+    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;
+    GpioDataRegs.GPADAT.bit.GPIO31 = 1;
+    EDIS;
+
+    initSCIA_blocking(baud);
+
+    /* triple HELLO */
+    for (rep = 0; rep < 3; ++rep) {
+        const char *h = "HELLO\n";
+        const char *p = h;
+        while (*p) scia_send_byte_blocking((unsigned char)*p++);
+        DELAY_US(20000);
+    }
+}
+
+/* ---------- ePWM init: SOCA on counter-zero ---------- */
+void initEPWM1_for_soctrig(uint32_t tbprd)
+{
+    EALLOW;
+    EPwm1Regs.TBCTL.bit.CLKDIV = TB_DIV1;
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = TB_DIV1;
+    EPwm1Regs.TBCTL.bit.PHSEN = TB_DISABLE;
+    EPwm1Regs.TBPRD = tbprd;
+
+    /* generate SOCA on counter zero */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;
+
+    /* keep stopped until capture start */
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_DISABLE;
+    EDIS;
+}
+
+/* ---------- ADC init for EPWM SOCA (TRIGSEL=5) ---------- */
+void initADC_for_epwm_soc0(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+    AdcbRegs.ADCCTL2.bit.PRESCALE = ADC_PRESCALE;
+
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000);
+
+    /* SOC0 -> ADCIN14 */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = ADC_ACQPS;
+
+    /* TRIGSEL: prefer symbolic, otherwise fallback to 5 (works on your board) */
+#ifdef ADCTRIG_EPWM1_SOCA
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+#elif defined(ADCTRIG1)
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG1;
+#else
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 5U; /* <--- chosen mapping */
+#endif
+
+    /* ADCINT1 -> EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    EDIS;
+}
+
+/* ---------- dump binary with header/footer ---------- */
+void dump_buffer_over_uart_with_header(uint32_t n)
+{
+    const char *hdr = "CAPTURE_DONE\n";
+    const char *p = hdr;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+
+    /* LED blink */
+    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
+    DELAY_US(1000);
+    GpioDataRegs.GPASET.bit.GPIO31 = 1;
+
+    /* binary LSB then MSB */
+    {
+        uint32_t i;
+        for (i = 0U; i < n; ++i) {
+            uint16_t v = adcBuffer[i];
+            scia_send_byte_blocking((unsigned char)(v & 0xFF));
+            scia_send_byte_blocking((unsigned char)(v >> 8));
+        }
+    }
+
+    const char *endm = "\nCAPTURE_END\n";
+    p = endm;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+}
+
+/* ---------- main ---------- */
+int main(void)
+{
+#ifdef _FLASH
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    uint32_t i;
+    uint32_t tbprd = TBPRD_DEFAULT;
+    double tbclk = 200e6 / (double)TBCLK_DIV;
+    double sample_rate = tbclk / (double)(tbprd + 1U);
+
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    initSCIA_and_pins(DUMP_BAUDRATE);
+
+    /* small mark */
+    {
+        const char *m = "INIT_DONE\n";
+        const char *q = m;
+        while (*q) scia_send_byte_blocking((unsigned char)*q++);
+        DELAY_US(200000);
+    }
+
+    initADC_for_epwm_soc0();
+    initEPWM1_for_soctrig(tbprd);
+
+    /* announce */
+    {
+        char tbuf[128];
+        int nlen;
+        nlen = sprintf(tbuf, "CAPTURE_STARTED\n");
+        for (i = 0; i < (uint32_t)nlen; ++i) scia_send_byte_blocking((unsigned char)tbuf[i]);
+        nlen = sprintf(tbuf, "Using ePWM-derived sample rate: %.0f Hz (TBPRD=%u)\n", sample_rate, tbprd);
+        for (i = 0; i < (uint32_t)nlen; ++i) scia_send_byte_blocking((unsigned char)tbuf[i]);
+    }
+
+    /* clear buffer + flags */
+    for (i = 0; i < CAPTURE_SAMPLES; ++i) adcBuffer[i] = 0U;
+    sampleIndex = 0U;
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+    /* start ePWM to generate SOCA */
+    EALLOW;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_COUNT_UP;
+    EDIS;
+
+    /* capture loop (poll ADCINT1) */
+    while (sampleIndex < CAPTURE_SAMPLES) {
+        /* busy-wait for ADCINT1 */
+        while (AdcaRegs.ADCINTFLG.bit.ADCINT1 == 0) {
+            /* tight poll; could add timeout if desired */
+        }
+        /* read and store */
+        {
+            uint16_t s = (uint16_t)AdcaResultRegs.ADCRESULT0;
+            adcBuffer[sampleIndex++] = s;
+        }
+        /* clear flag for next conversion */
+        AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+        if ((sampleIndex & 0xFF) == 0) {
+            GpioDataRegs.GPATOGGLE.bit.GPIO31 = 1;
+        }
+    }
+
+    /* stop ePWM */
+    EALLOW;
+    EPwm1Regs.TBCTL.bit.CTRMODE = TB_DISABLE;
+    EDIS;
+
+    /* wait for host to be ready */
+    if (PRE_DUMP_DELAY_US) DELAY_US(PRE_DUMP_DELAY_US);
+
+    /* dump binary */
+    dump_buffer_over_uart_with_header(CAPTURE_SAMPLES);
+
+    /* done */
+    for (;;) __asm(" NOP");
+    return 0;
+}
