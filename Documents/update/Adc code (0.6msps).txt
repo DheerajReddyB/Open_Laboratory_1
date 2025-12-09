@@ -1,0 +1,294 @@
+// full_debug_epwm1_1MSPS_capture_full.c
+// ePWM1-triggered ADC capture -> RAM -> UART dump (binary) for debugging trigger/ADC issues.
+// - Uses ePWM1 SOCA to trigger ADCA SOC0 at ~1.0 MHz (target).
+// - Retains same UART dump protocol as your software-trigger file.
+//
+// Usage:
+// 1) Paste this file into your CCS project (replace previous file).
+// 2) Build & flash.
+// 3) Open serial terminal (RealTerm/TeraTerm) on the LaunchPad COM at 115200, 8N1, Flow control = None.
+// 4) Reset the board. You should see HELLO x3, CAPTURE_STARTED, CAPTURE_DONE, binary bytes, CAPTURE_END.
+//
+// Author: ChatGPT (adapted for F28379D; ePWM-trigger variant)
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "F28x_Project.h"
+#include "ti_ascii.h"
+
+/* -------- CONFIGURATION -------- */
+#define CAPTURE_SAMPLES      (1024U)         /* 1024 samples -> 2048 bytes */
+#define ADC_CHANNEL          0x0EU           /* ADCIN14 */
+#define DUMP_BAUDRATE        115200U
+#define TARGET_SAMPLERATE_HZ (1000000UL)     /* 1 MHz target ePWM SOCA */
+
+/* Hardware/system clock - adjust if your project uses a different SYSCLK */
+#define SYSCLK_HZ            (200000000UL)   /* 200 MHz typical for F28379D examples */
+
+/* ADCTRIG / ePWM selector fallbacks (some TI headers differ) */
+#ifndef ADCTRIG_EPWM1_SOCA
+#define ADCTRIG_EPWM1_SOCA (5U)
+#endif
+
+#ifndef ET_CTR_ZERO
+#define ET_CTR_ZERO (1U)
+#endif
+
+#ifndef ET_1ST
+#define ET_1ST (1U)
+#endif
+/* -------------------------------- */
+
+/* If running from flash, these are linker-provided symbols used for copying RAM functions */
+extern Uint16 RamfuncsLoadStart;
+extern Uint16 RamfuncsLoadSize;
+extern Uint16 RamfuncsRunStart;
+
+/* Capture buffer (volatile since used across contexts) */
+static volatile uint16_t adcBuffer[CAPTURE_SAMPLES];
+static volatile uint32_t sampleIndex = 0U;
+
+/* Forward prototypes */
+void initSCIA_blocking(uint32_t baud);
+void scia_send_byte_blocking(unsigned char b);
+void initSCIA_and_pins(uint32_t baud);
+void initADC_for_epwm1_soc(void);
+void initEPWM1_for_1MHz(void);
+void dump_buffer_over_uart_with_header(void);
+
+/* ---------------- SCIA helpers ---------------- */
+void initSCIA_blocking(uint32_t baud)
+{
+    EALLOW;
+    /* 8-bit, 1 stop, no parity */
+    SciaRegs.SCICCR.all = 0x0007;
+    /* Enable TX/RX */
+    SciaRegs.SCICTL1.all = 0x0003;
+    /* Basic SCI control */
+    SciaRegs.SCICTL2.bit.TXINTENA = 1;
+    SciaRegs.SCICTL2.bit.RXBKINTENA = 1;
+
+    /* Baud calculation for LSPCLK = 50 MHz (typical when SYSCLK=200MHz) */
+    if (baud == 115200U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 53U;   /* approximate for 115200 @50MHz */
+    } else if (baud == 921600U) {
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = 6U;    /* approximate */
+    } else {
+        uint32_t scil = (50000000UL / (16UL * baud));
+        if (scil) scil -= 1U;
+        SciaRegs.SCIHBAUD.all = 0x0000;
+        SciaRegs.SCILBAUD.all = (uint16_t)scil;
+    }
+
+    /* Release SCI from reset */
+    SciaRegs.SCICTL1.all = 0x0023;
+    EDIS;
+}
+
+/* Robust blocking send: write byte then small delay to avoid first-byte-loss symptom in some setups */
+void scia_send_byte_blocking(unsigned char b)
+{
+    SciaRegs.SCITXBUF.all = b;
+    /* small delay to ensure byte moves out of CPU/SCITXBUF into hardware */
+    DELAY_US(200);
+}
+
+/* Configure SCIA TX/RX pinmux, optional LED, init SCIA, send triple HELLO as startup test */
+void initSCIA_and_pins(uint32_t baud)
+{
+    EALLOW;
+    /* Route SCIA to GPIO42/43 (common on many F2837xD launchpad examples) */
+    GpioCtrlRegs.GPBMUX1.bit.GPIO42  = 3;
+    GpioCtrlRegs.GPBMUX1.bit.GPIO43  = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO42 = 3;
+    GpioCtrlRegs.GPBGMUX1.bit.GPIO43 = 3;
+
+    /* Configure a visible LED pin as output (GPIO31 example) */
+    GpioCtrlRegs.GPADIR.bit.GPIO31 = 1;
+    GpioDataRegs.GPADAT.bit.GPIO31 = 1; /* LED off (board dependent) */
+    EDIS;
+
+    initSCIA_blocking(baud);
+
+    /* Triple HELLO for easy visual confirmation in terminal */
+    {
+        const char *hello = "HELLO\n";
+        int rep;
+        const char *p;
+        for (rep = 0; rep < 3; ++rep) {
+            p = hello;
+            while (*p) {
+                scia_send_byte_blocking((unsigned char)*p++);
+            }
+            DELAY_US(20000); /* 20ms gap between HELLO lines */
+        }
+    }
+}
+
+/* ---------------- ADC init for ePWM1 SOCA trigger ----------------
+   Configures ADCA SOC0 to read ADCIN14, sets EOC->INT1 so the code can poll ADCINT1.
+*/
+void initADC_for_epwm1_soc(void)
+{
+    EALLOW;
+    AdcaRegs.ADCCTL2.bit.PRESCALE = 6;   /* ADCCLK = SYSCLK/4 (if SYSCLK=200MHz -> ADCCLK=50MHz) */
+
+    /* Use 12-bit single-ended mode */
+    AdcSetMode(ADC_ADCA, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(ADC_ADCB, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+
+    /* Late sampling and power up */
+    AdcaRegs.ADCCTL1.bit.INTPULSEPOS = 1;
+    AdcaRegs.ADCCTL1.bit.ADCPWDNZ = 1;
+    DELAY_US(1000); /* let ADC power up */
+
+    /* SOC0 -> ADCIN14 */
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = ADC_CHANNEL;
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 25U; /* sample window = ACQPS+1 cycles (adjust if needed) */
+
+    /* Use ePWM1 SOCA as trigger for SOC0 */
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = ADCTRIG_EPWM1_SOCA;
+
+    /* Map ADCINT1 to EOC0 (SOC0) so ADCINT1 flag will set when EOC0 occurs */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0; /* EOC0 */
+    AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;
+    /* Clear any leftover flag */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+    EDIS;
+}
+
+/* ---------------- ePWM1 init for ~1MHz SOCA ----------------
+   Uses SYSCLK_HZ define to compute TBPRD:
+      TBPRD = (TBCLK / TARGET_SAMPLERATE_HZ) - 1   (for up-count mode)
+*/
+void initEPWM1_for_1MHz(void)
+{
+    EALLOW;
+
+    /* Stop the counter while configuring */
+    EPwm1Regs.TBCTL.bit.CTRMODE = 3; /* freeze */
+
+    /* Set clock dividers: no division so TBCLK = SYSCLK */
+    EPwm1Regs.TBCTL.bit.CLKDIV = 0;   /* /1 */
+    EPwm1Regs.TBCTL.bit.HSPCLKDIV = 0;/* /1 */
+
+    /* Compute TBPRD from known SYSCLK_HZ */
+    {
+        uint32_t tbclk_hz = SYSCLK_HZ;
+        uint32_t tbprd = (tbclk_hz / TARGET_SAMPLERATE_HZ);
+        if (tbprd == 0U) tbprd = 1U;
+        if (tbprd > 1U) tbprd -= 1U;
+        EPwm1Regs.TBPRD = (uint16_t)tbprd;
+    }
+
+    /* Up-count mode */
+    EPwm1Regs.TBCTL.bit.CTRMODE = 0; /* up-count */
+
+    /* Set CMPA using portable .all field (midpoint; not used for triggering) */
+    EPwm1Regs.CMPA.all = (uint16_t)(EPwm1Regs.TBPRD / 2);
+
+    /* Configure event trigger: enable SOCA generation */
+    EPwm1Regs.ETSEL.bit.SOCAEN = 1;           /* enable SOCA */
+    EPwm1Regs.ETSEL.bit.SOCASEL = ET_CTR_ZERO;/* generate SOCA when TBCTR == ZERO */
+    EPwm1Regs.ETPS.bit.SOCAPRD = ET_1ST;      /* generate on first event */
+
+    /* Reset TB counter so events start predictably */
+    EPwm1Regs.TBCTR = 0;
+
+    EDIS;
+}
+
+/* ---------------- Dump buffer (binary) with ASCII header/footer ---------------- */
+void dump_buffer_over_uart_with_header(void)
+{
+    const char *hdr = "CAPTURE_DONE\n";
+    const char *p = hdr;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+
+    /* Toggle LED briefly as indicator (active polarity depends on board) */
+    GpioDataRegs.GPACLEAR.bit.GPIO31 = 1;
+    DELAY_US(1000);
+    GpioDataRegs.GPASET.bit.GPIO31 = 1;
+
+    /* Send binary samples: LSB then MSB */
+    {
+        uint32_t i;
+        uint16_t v;
+        for (i = 0U; i < sampleIndex; ++i) {
+            v = adcBuffer[i];
+            scia_send_byte_blocking((unsigned char)(v & 0xFF));
+            scia_send_byte_blocking((unsigned char)(v >> 8));
+        }
+    }
+
+    const char *endm = "\nCAPTURE_END\n";
+    p = endm;
+    while (*p) scia_send_byte_blocking((unsigned char)*p++);
+}
+
+/* ---------------------- MAIN: ePWM1-triggered capture ---------------------- */
+int main(void)
+{
+#ifdef _FLASH
+    /* copy RAM functions if running from flash */
+    memcpy(&RamfuncsRunStart, &RamfuncsLoadStart, (size_t)&RamfuncsLoadSize);
+#endif
+
+    /* Basic system init */
+    InitSysCtrl();
+    DINT;
+    InitPieCtrl();
+    InitPieVectTable();
+
+    /* Initialize ADC (SOC0 config) and SCIA pins/peripheral */
+    initADC_for_epwm1_soc();
+    initSCIA_and_pins(DUMP_BAUDRATE);
+
+    /* Initialize ePWM1 to generate SOCA at ~1 MHz */
+    initEPWM1_for_1MHz();
+
+    /* Announce start */
+    {
+        const char *msg = "CAPTURE_STARTED\n";
+        const char *q = msg;
+        while (*q) scia_send_byte_blocking((unsigned char)*q++);
+    }
+
+    /* Clear ADCINT1 flag to start clean */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+
+    /* Ensure TBCTR is zeroed so SOCA alignment is predictable */
+    EPwm1Regs.TBCTR = 0;
+
+    /* Collect CAPTURE_SAMPLES samples - ePWM triggers the ADC in hardware */
+    sampleIndex = 0U;
+    {
+        uint32_t i;
+        for (i = 0U; i < CAPTURE_SAMPLES; ++i) {
+            /* Wait for conversion complete (ADCINT1 will be set because INT1SEL = EOC0) */
+            while (AdcaRegs.ADCINTFLG.bit.ADCINT1 == 0) { /* busy wait */ }
+
+            /* Read result */
+            {
+                uint16_t s = (uint16_t)AdcaResultRegs.ADCRESULT0;
+                adcBuffer[i] = s;
+                sampleIndex++;
+            }
+
+            /* Clear ADCINT1 flag */
+            AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+        }
+    }
+
+    /* Dump collected buffer */
+    dump_buffer_over_uart_with_header();
+
+    /* Halt so you can inspect terminal */
+    for (;;) { __asm(" NOP"); }
+}
